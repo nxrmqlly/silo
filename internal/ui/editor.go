@@ -58,7 +58,9 @@ func (e *Editor) SetFocus(f bool) {
 }
 
 func (e *Editor) LoadFile(path string, content string) {
-
+	e.filePath = path
+	e.textarea.SetValue(content)
+	e.dirty = false
 }
 
 func (e *Editor) Update(msg tea.Msg) tea.Cmd {
@@ -77,13 +79,17 @@ func (e *Editor) Update(msg tea.Msg) tea.Cmd {
 				}
 			}
 		}
+
 	}
 
-	var cmd tea.Cmd
-	e.textarea, cmd = e.textarea.Update(msg)
-	e.dirty = true
+	prev := e.textarea.Value()
+    var cmd tea.Cmd
+    e.textarea, cmd = e.textarea.Update(msg)
+    if e.textarea.Value() != prev {
+        e.dirty = true
+    }
 
-	return cmd
+    return cmd
 }
 
 func (e *Editor) View() string {

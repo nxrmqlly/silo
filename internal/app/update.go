@@ -1,9 +1,8 @@
 package app
 
 import (
-	"os"
-
 	tea "charm.land/bubbletea/v2"
+	"github.com/nxrmqlly/silo/internal/fs"
 	"github.com/nxrmqlly/silo/internal/ui"
 )
 
@@ -54,8 +53,16 @@ func (m *CustomModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case ui.FileSelectedMsg:
-		content, _ := os.ReadFile(msg.Path)
+		content, err := fs.ReadFile(msg.Path)
+		if err != nil {
+			return m, nil
+		}
+
 		m.editor.LoadFile(msg.Path, string(content))
+		m.statusbar.SetFile(msg.Path)
+		m.statusbar.SetDirty(false)
+
+		return m, nil
 	}
 
 	// ? only update component in focus.

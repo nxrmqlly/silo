@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"path/filepath"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -17,7 +18,18 @@ type Sidebar struct {
 	focused bool
 
 	offset int
+
+	mode      sidebarMode
+	nameInput string // buffer since we only type one name at a time
 }
+
+type sidebarMode int
+
+const (
+	modeNormal        sidebarMode = iota
+	modeNaming                    // 'n' pressed, typing new filename
+	modeConfirmDelete             // 'd' pressed, waiting for y/n
+)
 
 func (s *Sidebar) refreshRenderList() {
 	s.list = flattenTree(s.root, 0)
@@ -64,39 +76,170 @@ func (s *Sidebar) SetFocus(f bool) {
 	s.focused = f
 }
 
+// returns the directory path to create the new files in.
+// If cursor is on a dir, use that else use parent dir.
+func (s *Sidebar) dirAtCursor() string {
+	if len(s.list) == 0 {
+		return s.root.Path
+	}
+
+	current := s.list[s.cursor]
+	if current.IsDir {
+		return current.Path
+	}
+	if current.Parent != nil {
+		return current.Parent.Path
+	}
+
+	return s.root.Path
+}
+
+func (s *Sidebar) handleNormalKey(msg tea.KeyMsg) tea.Cmd {
+	switch msg.String() {
+
+	case "down", "j":
+		if s.cursor < len(s.list)-1 {
+			s.cursor++
+			s.adjustScroll()
+		}
+
+	case "up", "k":
+		if s.cursor > 0 {
+			s.cursor--
+			s.adjustScroll()
+		}
+
+	case "enter":
+		current := s.list[s.cursor]
+		if !current.IsDir {
+			return func() tea.Msg { return FileSelectedMsg{Path: current.Path} }
+		}
+		current.Expanded = !current.Expanded
+		s.refreshRenderList()
+
+	case "n":
+		s.mode = modeNaming
+		s.nameInput = ""
+
+	case "d":
+		if len(s.list) > 0 {
+			s.mode = modeConfirmDelete
+		}
+	}
+
+	return nil
+}
+
+func (s *Sidebar) handleNamingKey(msg tea.KeyMsg) tea.Cmd {
+	switch msg.String() {
+	case "esc":
+		s.mode = modeNormal
+		s.nameInput = ""
+
+	case "enter":
+		input := strings.TrimSpace(s.nameInput)
+		s.mode = modeNormal
+		s.nameInput = ""
+		if input == "" {
+			return nil
+		}
+
+		dir := s.dirAtCursor()
+
+		fullPath := filepath.Join(dir, input)
+		isDir := strings.HasSuffix(input, "/")
+
+		var err error
+
+		if isDir {
+			fullPath = strings.TrimSuffix(fullPath, "/")
+			err = fs.CreateDir(fullPath)
+		} else {
+			err = fs.CreateFile(fullPath)
+		}
+
+		if err != nil {
+			return nil
+		}
+
+		return func() tea.Msg {
+			return FileCreatedMsg{Path: fullPath, IsDir: isDir}
+		}
+	case "backspace":
+		if len(s.nameInput) > 0 {
+			s.nameInput = s.nameInput[:len(s.nameInput)-1] // trim last char
+		}
+
+	default:
+		ch := msg.String()
+
+		// ensure only printable chars
+		if len(ch) == 1 {
+			s.nameInput += ch
+		}
+	}
+
+	return nil
+}
+
+func (s *Sidebar) handleConfirmDeleteKey(msg tea.KeyMsg) tea.Cmd {
+	switch msg.String() {
+	case "y":
+		s.mode = modeNormal
+		if len(s.list) == 0 {
+			return nil
+		}
+		target := s.list[s.cursor]
+		path := target.Path
+
+		if err := fs.DeletePath(path); err != nil {
+			return nil
+		}
+
+		if s.cursor > 0 {
+			s.cursor--
+		}
+
+		return func() tea.Msg {
+			return FileDeletedMsg{Path: path}
+		}
+	case "n", "esc":
+		s.mode = modeNormal
+	}
+
+	return nil
+}
+
 func (s *Sidebar) Update(msg tea.Msg) tea.Cmd {
 	if !s.focused {
 		return nil
 	}
 
 	switch msg := msg.(type) {
+
 	case tea.KeyMsg:
-		switch msg.String() {
+		switch s.mode {
 
-		case "down", "j":
-			if s.cursor < len(s.list)-1 {
-				s.cursor++
-				s.adjustScroll()
-			}
+		case modeNaming:
+			return s.handleNamingKey(msg)
 
-		case "up", "k":
-			if s.cursor > 0 {
-				s.cursor--
-				s.adjustScroll()
-			}
+		case modeConfirmDelete:
+			return s.handleConfirmDeleteKey(msg)
 
-		case "enter":
-			current := s.list[s.cursor]
-			if !current.IsDir {
-				return func() tea.Msg {
-					return FileSelectedMsg{Path: current.Path}
-				}
-			}
-			// toggle expand
-			current.Expanded = !current.Expanded
-			s.refreshRenderList()
-
+		case modeNormal:
+			return s.handleNormalKey(msg)
 		}
+
+	case RefreshSidebarMsg:
+		fs.RefreshNode(s.root)
+		s.refreshRenderList()
+
+		//clamp the cursor
+		if s.cursor >= len(s.list) {
+			s.cursor = len(s.list) - 1 //last idx
+		}
+		return nil
+
 	}
 
 	return nil
