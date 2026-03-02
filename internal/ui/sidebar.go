@@ -298,7 +298,7 @@ func (s *Sidebar) View() string {
 	case modeNaming:
 		prompt := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("139")).
-			Render("new: " + s.nameInput + "|")
+			Render("new: " + s.nameInput + lipgloss.NewStyle().Blink(true).Render("█"))
 		lines = append(lines, prompt)
 
 	case modeConfirmDelete:
@@ -307,13 +307,12 @@ func (s *Sidebar) View() string {
 			target = s.list[s.cursor].Name
 		}
 
-		prompt:= lipgloss.NewStyle().
-		Foreground(lipgloss.Color("160")).
-		Render("delete " + target + "? (y/n)")
+		prompt := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("160")).
+			Render("delete " + target + "? (y/n)")
 
 		lines = append(lines, prompt)
 	}
-	
 
 	style := lipgloss.NewStyle().
 		Width(s.width).

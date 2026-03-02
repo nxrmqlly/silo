@@ -131,8 +131,6 @@ func NewEditor() *Editor {
 
 	s.Blurred.CursorLineNumber = lipgloss.NewStyle().Foreground(lipgloss.Color("238"))
 	s.Blurred.LineNumber = lipgloss.NewStyle().Foreground(lipgloss.Color("238"))
-	// s.Blurred.CursorLine = lipgloss.NewStyle().Background(lipgloss.Color("238"))
-	// s.Blurred.Text = lipgloss.NewStyle().Foreground(lipgloss.Color("238"))
 
 	ta.SetStyles(s)
 
