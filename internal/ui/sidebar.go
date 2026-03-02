@@ -248,10 +248,25 @@ func (s *Sidebar) Update(msg tea.Msg) tea.Cmd {
 func (s *Sidebar) View() string {
 	var lines []string
 
-	for idx, node := range s.list {
-		prefix := strings.Repeat("  ", depth(node))
+	visible := s.list
+	if s.offset < len(visible) {
+		visible = visible[s.offset:]
+	}
 
+	maxLines := s.height - 2 // account for border
+	if s.mode == modeNaming || s.mode == modeConfirmDelete {
+		maxLines-- // reserve one line for the prompt
+	}
+
+	for i, node := range visible {
+		if i >= maxLines {
+			break
+		}
+
+		idx := i + s.offset
+		prefix := strings.Repeat("  ", depth(node))
 		name := node.Name
+
 		if node.IsDir {
 			if node.Expanded {
 				name = "▾ " + name
@@ -278,11 +293,34 @@ func (s *Sidebar) View() string {
 		lines = append(lines, line)
 	}
 
+	//prompt line at bottom
+	switch s.mode {
+	case modeNaming:
+		prompt := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("139")).
+			Render("new: " + s.nameInput + "|")
+		lines = append(lines, prompt)
+
+	case modeConfirmDelete:
+		target := ""
+		if len(s.list) > 0 {
+			target = s.list[s.cursor].Name
+		}
+
+		prompt:= lipgloss.NewStyle().
+		Foreground(lipgloss.Color("160")).
+		Render("delete " + target + "? (y/n)")
+
+		lines = append(lines, prompt)
+	}
+	
+
 	style := lipgloss.NewStyle().
 		Width(s.width).
 		Height(s.height).
 		Padding(0, 0)
 
+	// border based on active or not
 	if s.focused {
 		style = style.
 			Border(lipgloss.RoundedBorder()).

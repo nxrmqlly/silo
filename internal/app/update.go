@@ -35,7 +35,6 @@ func (m *CustomModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		editorWidth := m.width - sidebarWidth
 
 		// for statusbar
-		// todo: handle overflow
 		contentHeight := m.height - 1
 
 		m.editor.SetSize(editorWidth, contentHeight)
@@ -46,15 +45,21 @@ func (m *CustomModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case ui.SaveFileMsg:
 		// todo: false info - save logic later
+		if err := fs.WriteFile(msg.Path, msg.Content); err != nil {
+			m.statusbar.SetStatus("err save: " + err.Error())
+			return m, nil
+		}
 
 		m.statusbar.SetFile(msg.Path)
 		m.statusbar.SetDirty(false)
+		m.statusbar.SetStatus("saved")
 
 		return m, nil
 
 	case ui.FileSelectedMsg:
 		content, err := fs.ReadFile(msg.Path)
 		if err != nil {
+			m.statusbar.SetStatus("err read: " + err.Error())
 			return m, nil
 		}
 
@@ -63,6 +68,25 @@ func (m *CustomModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusbar.SetDirty(false)
 
 		return m, nil
+
+	case ui.FileDeletedMsg:
+		// if deleted file was open, then clear editor
+		if m.editor.FilePath() == msg.Path {
+			m.editor.LoadFile("", "")
+			m.statusbar.SetFile("<unsaved buffer>")
+			m.statusbar.SetDirty(false)
+		}
+		m.statusbar.SetStatus("deleted")
+		return m, func() tea.Msg {
+			return ui.RefreshSidebarMsg{}
+		}
+
+	case ui.FileCreatedMsg:
+		m.statusbar.SetStatus("created: " + msg.Path)
+
+		return m, func() tea.Msg {
+			return ui.RefreshSidebarMsg{}
+		}
 	}
 
 	// ? only update component in focus.

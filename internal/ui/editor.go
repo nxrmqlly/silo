@@ -83,13 +83,13 @@ func (e *Editor) Update(msg tea.Msg) tea.Cmd {
 	}
 
 	prev := e.textarea.Value()
-    var cmd tea.Cmd
-    e.textarea, cmd = e.textarea.Update(msg)
-    if e.textarea.Value() != prev {
-        e.dirty = true
-    }
+	var cmd tea.Cmd
+	e.textarea, cmd = e.textarea.Update(msg)
+	if e.textarea.Value() != prev {
+		e.dirty = true
+	}
 
-    return cmd
+	return cmd
 }
 
 func (e *Editor) View() string {
@@ -136,15 +136,9 @@ func NewEditor() *Editor {
 
 	ta.SetStyles(s)
 
-	ta.SetValue(`# silo
-	
-This is a hardcoded note.
-Start typing and press Ctrl+S to simulate saving.
-`)
-
 	return &Editor{
 		textarea: ta,
-		filePath: "notes/welcome.md",
+		filePath: "<buffer>",
 		focused:  true,
 	}
 }
