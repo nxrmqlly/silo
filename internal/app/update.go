@@ -12,6 +12,16 @@ func (m *CustomModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
+		case "tab":
+			if m.focus == FocusEditor {
+				m.focus = FocusSidebar
+				m.editor.SetFocus(false)
+				m.sidebar.SetFocus(true)
+			} else {
+				m.focus = FocusEditor
+				m.sidebar.SetFocus(false)
+				m.editor.SetFocus(true)
+			}
 
 		case "ctrl+c", "q":
 			return m, tea.Quit
@@ -48,8 +58,14 @@ func (m *CustomModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.editor.LoadFile(msg.Path, string(content))
 	}
 
-	cmd1 := m.editor.Update(msg)
-	cmd2 := m.sidebar.Update(msg)
+	// ? only update component in focus.
+	var cmd tea.Cmd
+	switch m.focus {
+	case FocusEditor:
+		cmd = m.editor.Update(msg)
+	case FocusSidebar:
+		cmd = m.sidebar.Update(msg)
+	}
 
 	// update statusbar every tick
 	line, col := m.editor.CurrentCursorPosition()
@@ -63,6 +79,5 @@ func (m *CustomModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	m.statusbar.SetFile(m.editor.FilePath())
 	m.statusbar.SetDirty(m.editor.IsDirty())
-
-	return m, tea.Batch(cmd1, cmd2)
+	return m, cmd
 }

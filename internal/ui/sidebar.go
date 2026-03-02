@@ -1,19 +1,48 @@
 package ui
 
 import (
-	"path/filepath"
+	"strings"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/nxrmqlly/silo/internal/fs"
 )
 
 type Sidebar struct {
-	files   []string
+	root    *fs.FileNode
+	list    []*fs.FileNode // flattened render list
 	cursor  int
-	offset  int // scroll offset
 	width   int
 	height  int
 	focused bool
+
+	offset int
+}
+
+func (s *Sidebar) refreshRenderList() {
+	s.list = flattenTree(s.root, 0)
+}
+
+func flattenTree(node *fs.FileNode, level int) []*fs.FileNode {
+	lines := []*fs.FileNode{}
+
+	lines = append(lines, node)
+	if node.IsDir && node.Expanded {
+		for _, child := range node.Children {
+			lines = append(lines, flattenTree(child, level+1)...)
+		}
+	}
+
+	return lines
+}
+
+func depth(node *fs.FileNode) int {
+	d := 0
+	for node.Parent != nil {
+		d++
+		node = node.Parent
+	}
+	return d
 }
 
 func (s *Sidebar) adjustScroll() {
@@ -41,51 +70,56 @@ func (s *Sidebar) Update(msg tea.Msg) tea.Cmd {
 	}
 
 	switch msg := msg.(type) {
-
 	case tea.KeyMsg:
 		switch msg.String() {
 
-		case "j", "down":
-			if s.cursor < len(s.files)-1 {
+		case "down", "j":
+			if s.cursor < len(s.list)-1 {
 				s.cursor++
+				s.adjustScroll()
 			}
 
-		case "k", "up":
+		case "up", "k":
 			if s.cursor > 0 {
 				s.cursor--
+				s.adjustScroll()
 			}
 
 		case "enter":
-			if len(s.files) == 0 {
-				return nil
+			current := s.list[s.cursor]
+			if !current.IsDir {
+				return func() tea.Msg {
+					return FileSelectedMsg{Path: current.Path}
+				}
 			}
-			selected := s.files[s.cursor]
-			return func() tea.Msg {
-				return FileSelectedMsg{Path: selected}
-			}
+			// toggle expand
+			current.Expanded = !current.Expanded
+			s.refreshRenderList()
+
 		}
 	}
-
-	s.adjustScroll()
 
 	return nil
 }
 
 func (s *Sidebar) View() string {
-	var out string
+	var lines []string
 
-	// calc end before overflow
-	end := s.offset + s.height
-	if end > len(s.files) {
-		end = len(s.files)
-	}
+	for idx, node := range s.list {
+		prefix := strings.Repeat("  ", depth(node))
 
-	// loop offset to end
-	for i := s.offset; i < end; i++ {
-		file := filepath.Base(s.files[i])
-		line := " " + file
+		name := node.Name
+		if node.IsDir {
+			if node.Expanded {
+				name = "▾ " + name
+			} else {
+				name = "▸ " + name
+			}
+		}
 
-		if i == s.cursor {
+		line := prefix + name
+
+		if idx == s.cursor {
 			if s.focused {
 				line = lipgloss.NewStyle().
 					Background(lipgloss.Color("238")).
@@ -98,15 +132,29 @@ func (s *Sidebar) View() string {
 			}
 		}
 
-		out += line + "\n"
+		lines = append(lines, line)
 	}
 
-	outStyle := lipgloss.NewStyle()
-	return outStyle.Width(s.width).Render(out)
+	style := lipgloss.NewStyle().
+		Width(s.width).
+		Height(s.height).
+		Padding(0, 0)
+
+	if s.focused {
+		style = style.
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("139"))
+
+	} else {
+		style = style.Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("238"))
+	}
+
+	return style.Render(strings.Join(lines, "\n"))
 }
 
-func NewSidebar(files []string) *Sidebar {
-	return &Sidebar{
-		files: files,
-	}
+func NewSidebar(root *fs.FileNode) *Sidebar {
+	s := &Sidebar{root: root}
+	s.refreshRenderList()
+	return s
 }

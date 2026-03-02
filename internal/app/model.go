@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/nxrmqlly/silo/internal/ui"
+	"github.com/nxrmqlly/silo/internal/fs"
 )
 
 type FocusMode int
@@ -22,11 +23,11 @@ const (
 )
 
 func InitialModel() *CustomModel {
-	
+
 	return &CustomModel{
 		focus:     FocusEditor,
 		editor:    ui.NewEditor(),
 		statusbar: ui.NewStatusBar(),
-		sidebar:   ui.NewSidebar([]string{"hi", "hello"}),
+		sidebar:   ui.NewSidebar(fs.BuildFileTree("./.silo-test/notes")),
 	}
 }

@@ -98,12 +98,13 @@ func (e *Editor) View() string {
 		Padding(0, 0)
 
 	if e.focused {
-		// style = style.
-		// Border(lipgloss.RoundedBorder()).
-		// BorderForeground(lipgloss.Color("244"))
+		style = style.
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("139"))
 
 	} else {
-		style = style.Border(lipgloss.HiddenBorder())
+		style = style.Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("238"))
 	}
 
 	return style.Render(e.textarea.View())
@@ -119,9 +120,15 @@ func NewEditor() *Editor {
 	// styles
 	s := textarea.DefaultStyles(true)
 	s.Focused.LineNumber = lipgloss.NewStyle().Foreground(lipgloss.Color("238"))
-	s.Focused.CursorLineNumber = lipgloss.NewStyle().Foreground(lipgloss.Color("69"))
+	s.Focused.CursorLineNumber = lipgloss.NewStyle().Foreground(lipgloss.Color("139"))
 	s.Focused.CursorLine = lipgloss.NewStyle().Background(lipgloss.Color("236"))
-	ta.SetStyles(s) // default to dark styles.
+
+	s.Blurred.CursorLineNumber = lipgloss.NewStyle().Foreground(lipgloss.Color("238"))
+	s.Blurred.LineNumber = lipgloss.NewStyle().Foreground(lipgloss.Color("238"))
+	// s.Blurred.CursorLine = lipgloss.NewStyle().Background(lipgloss.Color("238"))
+	// s.Blurred.Text = lipgloss.NewStyle().Foreground(lipgloss.Color("238"))
+
+	ta.SetStyles(s)
 
 	ta.SetValue(`# silo
 	
