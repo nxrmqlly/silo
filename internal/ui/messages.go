@@ -7,3 +7,6 @@ type SaveFileMsg struct {
 	Path    string
 	Content string
 }
+type FileSelectedMsg struct {
+	Path string
+}

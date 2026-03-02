@@ -57,6 +57,10 @@ func (e *Editor) SetFocus(f bool) {
 	}
 }
 
+func (e *Editor) LoadFile(path string, content string) {
+
+}
+
 func (e *Editor) Update(msg tea.Msg) tea.Cmd {
 
 	switch msg := msg.(type) {

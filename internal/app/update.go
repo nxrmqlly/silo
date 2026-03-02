@@ -1,11 +1,13 @@
 package app
 
 import (
+	"os"
+
 	tea "charm.land/bubbletea/v2"
 	"github.com/nxrmqlly/silo/internal/ui"
 )
 
-func (m CustomModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *CustomModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case tea.KeyMsg:
@@ -19,7 +21,16 @@ func (m CustomModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
-		m.editor.SetSize(m.width, m.height - 1)
+		// 1:3 space
+		sidebarWidth := m.width / 4
+		editorWidth := m.width - sidebarWidth
+
+		// for statusbar
+		// todo: handle overflow
+		contentHeight := m.height - 1
+
+		m.editor.SetSize(editorWidth, contentHeight)
+		m.sidebar.SetSize(sidebarWidth, contentHeight)
 		m.statusbar.SetSize(msg.Width)
 
 		return m, nil
@@ -29,11 +40,16 @@ func (m CustomModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.statusbar.SetFile(msg.Path)
 		m.statusbar.SetDirty(false)
-		
+
 		return m, nil
+
+	case ui.FileSelectedMsg:
+		content, _ := os.ReadFile(msg.Path)
+		m.editor.LoadFile(msg.Path, string(content))
 	}
 
-	cmd := m.editor.Update(msg)
+	cmd1 := m.editor.Update(msg)
+	cmd2 := m.sidebar.Update(msg)
 
 	// update statusbar every tick
 	line, col := m.editor.CurrentCursorPosition()
@@ -48,5 +64,5 @@ func (m CustomModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.statusbar.SetFile(m.editor.FilePath())
 	m.statusbar.SetDirty(m.editor.IsDirty())
 
-	return m, cmd
+	return m, tea.Batch(cmd1, cmd2)
 }

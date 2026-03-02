@@ -11,20 +11,22 @@ type CustomModel struct {
 
 	focus FocusMode
 
-	editor *ui.Editor
+	editor    *ui.Editor
 	statusbar *ui.StatusBar
+	sidebar   *ui.Sidebar
 }
-
 
 const (
 	FocusSidebar FocusMode = iota
 	FocusEditor
 )
 
-func InitialModel() CustomModel {
-	return CustomModel{
-		focus:  FocusEditor,
-		editor: ui.NewEditor(),
+func InitialModel() *CustomModel {
+	
+	return &CustomModel{
+		focus:     FocusEditor,
+		editor:    ui.NewEditor(),
 		statusbar: ui.NewStatusBar(),
+		sidebar:   ui.NewSidebar([]string{"hi", "hello"}),
 	}
 }
