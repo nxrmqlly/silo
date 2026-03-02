@@ -12,6 +12,7 @@ type CustomModel struct {
 	focus FocusMode
 
 	editor *ui.Editor
+	statusbar *ui.StatusBar
 }
 
 
@@ -24,5 +25,6 @@ func InitialModel() CustomModel {
 	return CustomModel{
 		focus:  FocusEditor,
 		editor: ui.NewEditor(),
+		statusbar: ui.NewStatusBar(),
 	}
 }
