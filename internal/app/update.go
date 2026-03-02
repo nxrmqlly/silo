@@ -22,7 +22,7 @@ func (m *CustomModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.editor.SetFocus(true)
 			}
 
-		case "ctrl+c", "q":
+		case "ctrl+c":
 			return m, tea.Quit
 		}
 

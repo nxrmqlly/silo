@@ -335,6 +335,7 @@ func (s *Sidebar) View() string {
 }
 
 func NewSidebar(root *fs.FileNode) *Sidebar {
+	root.Expanded = true
 	s := &Sidebar{root: root}
 	s.refreshRenderList()
 	return s

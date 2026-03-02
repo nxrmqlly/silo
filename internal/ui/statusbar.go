@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"charm.land/lipgloss/v2"
@@ -60,7 +61,7 @@ func (s *StatusBar) View() string {
 	if fname == "" {
 		fname = "<empty buffer>"
 	}
-	left := fmt.Sprintf(" %s%s", s.filePath, dirtyIndicator)
+	left := fmt.Sprintf(" %s%s", filepath.Base(s.filePath), dirtyIndicator)
 
 	var right string
 
