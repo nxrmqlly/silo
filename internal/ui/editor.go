@@ -90,7 +90,7 @@ func (e *Editor) View() string {
 
 	style := lipgloss.NewStyle().
 		Width(e.width).
-		Height(e.height-1).
+		Height(e.height).
 		Padding(0, 0)
 
 	if e.focused {

@@ -19,7 +19,7 @@ func (m CustomModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
-		m.editor.SetSize(m.width, m.height)
+		m.editor.SetSize(m.width, m.height - 1)
 		m.statusbar.SetSize(msg.Width)
 
 		return m, nil
@@ -35,8 +35,18 @@ func (m CustomModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	cmd := m.editor.Update(msg)
 
+	// update statusbar every tick
+	line, col := m.editor.CurrentCursorPosition()
 	m.statusbar.SetFile(m.editor.FilePath())
 	m.statusbar.SetDirty(m.editor.IsDirty())
-	
+	m.statusbar.SetCursor(line, col)
+	m.statusbar.SetStats(
+		m.editor.LineCount(),
+		m.editor.WordCount(),
+	)
+
+	m.statusbar.SetFile(m.editor.FilePath())
+	m.statusbar.SetDirty(m.editor.IsDirty())
+
 	return m, cmd
 }
