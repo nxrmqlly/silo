@@ -21,7 +21,7 @@ jobs:
 
       - name: Build Linux binary
         run: |
-          GOOS=linux GOARCH=amd64 go build -o silo ./cmd/silo
+          GOOS=linux GOARCH=amd64 go build -ldflags "-X 'github.com/nxrmqlly/silo/internal/cli.Version=${TAG}'" -o silo ./cmd/silo
 
       - uses: softprops/action-gh-release@v2
         with:
