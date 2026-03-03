@@ -6,13 +6,7 @@ import (
 )
 
 func (m *SiloModel) View() tea.View {
-	// s := "silo - a notes app"
-
-	if m.editor == nil || m.statusbar == nil {
-		return tea.NewView("")
-	}
-
-	if m.width == 0 || m.height == 0 {
+	if m.editor == nil || m.statusbar == nil || m.sidebar == nil {
 		return tea.NewView("")
 	}
 

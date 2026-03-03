@@ -13,9 +13,8 @@ import (
 var (
 	// Color scheme
 	titleStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("213")).Bold(true)
-	stepStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("86")).Bold(true)
-	subtleStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
-	accentStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("229"))
+	stepStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("33")).Bold(true)
+	accentStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("141"))
 	pathStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("120")).Bold(true)
 	successStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("42")).Bold(true)
 	errorStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
@@ -32,6 +31,14 @@ const (
 	stepDone
 )
 
+const siloAscii string = `
+ ▄▄▄ ▄ █  ▄▄▄  
+▀▄▄  ▄ █ █   █ 
+▄▄▄▀ █ █ ▀▄▄▄▀ 
+     █ █       
+
+✨ welcome to silo - dead simple notes app for your terminal`
+
 type WizardModel struct {
 	step        wizardStep
 	textInput   textinput.Model
@@ -39,9 +46,10 @@ type WizardModel struct {
 	defaultPath string
 	notesDir    string
 	err         error
+	isFirstTime bool
 }
 
-func NewWizardModel() *WizardModel {
+func NewWizardModel(isFirstTime bool) *WizardModel {
 	homeDir, _ := os.UserHomeDir()
 	defaultPath := filepath.Join(homeDir, "notes")
 
@@ -54,6 +62,7 @@ func NewWizardModel() *WizardModel {
 		step:        stepWelcome,
 		textInput:   ti,
 		defaultPath: defaultPath,
+		isFirstTime: isFirstTime,
 	}
 }
 
@@ -62,6 +71,12 @@ func (m *WizardModel) Init() tea.Cmd {
 }
 
 func (m *WizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if key, ok := msg.(tea.KeyMsg); ok {
+		if key.String() == "ctrl+c" {
+			return m, tea.Quit
+		}
+	}
+
 	switch m.step {
 
 	case stepWelcome:
@@ -93,7 +108,7 @@ func (m *WizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch key.String() {
 			case "enter":
 				m.step = stepSetup
-				// Perform setup
+				// do the basic setup
 				if err := m.setup(m.notesDir); err != nil {
 					m.err = err
 					return m, nil
@@ -108,8 +123,7 @@ func (m *WizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case stepDone:
 		if key, ok := msg.(tea.KeyMsg); ok {
 			if key.String() == "enter" {
-				// Transition to editor
-				return NewSiloModel(m.notesDir), nil
+				os.Exit(0)
 			}
 		}
 		return m, nil
@@ -119,61 +133,41 @@ func (m *WizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *WizardModel) View() tea.View {
+	view := titleStyle.Render(siloAscii)
+
 	switch m.step {
 
 	case stepWelcome:
-		return tea.NewView(
-			"\n" +
-				titleStyle.Render("✨ Welcome to SILO") + "\n" +
-				titleStyle.Render("═══════════════════") + "\n\n" +
-				"Let's set up your notes management system.\n" +
-				"This wizard will help you configure SILO for the first time.\n\n" +
-				helpTextStyle.Render("Press Enter to continue..."))
+		if m.isFirstTime {
+			view += helpTextStyle.Render("\nfirst time run detected, please continue in the wizard")
+		}
+		view += "\n" + helpTextStyle.Render("press enter to continue...")
 
 	case stepDirInput:
-		view := "\n" +
-			stepStyle.Render("Step 1 of 3") + " · " + accentStyle.Render("Choose Notes Location") + "\n" +
-			subtleStyle.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━") + "\n\n" +
-			"Where should your notes live?\n" +
-			helpTextStyle.Render("(Press Enter to use the default)") + "\n\n"
+		view += "\n" +
+			stepStyle.Render("step 1/3") + " · " + accentStyle.Render("where should your notes live?\n") +
+			helpTextStyle.Render("(press enter to use the default)") + "\n\n"
 		view += m.textInput.View()
 		if m.err != nil {
-			view += "\n\n" + errorStyle.Render("❌ Error: "+m.err.Error())
+			view += "\n\n" + errorStyle.Render("❌ err: "+m.err.Error())
 		}
-		return tea.NewView(view)
 
 	case stepReview:
-		view := "\n" +
-			stepStyle.Render("Step 2 of 3") + " · " + accentStyle.Render("Review Configuration") + "\n" +
-			subtleStyle.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━") + "\n\n" +
-			"Notes directory:\n" +
+		view += "\n" +
+			stepStyle.Render("step 2/3") + " · " + accentStyle.Render("review config\n") + "\n" +
+			"notes directory:\n" +
 			"  " + pathStyle.Render(m.notesDir) + "\n\n" +
-			"Config will be saved to:\n" +
-			"  " + pathStyle.Render("~/.config/silo/config.json") + "\n\n" +
-			helpTextStyle.Render("Backspace to edit · Enter to confirm...")
-		return tea.NewView(view)
-
-	case stepSetup:
-		return tea.NewView(
-			"\n" +
-				stepStyle.Render("Step 3 of 3") + " · " + accentStyle.Render("Setting up...") + "\n" +
-				subtleStyle.Render("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━") + "\n\n" +
-				"Creating directories and saving configuration...")
+			helpTextStyle.Render("backspace to edit · enter to confirm...")
 
 	case stepDone:
-		view := "\n" +
-			successStyle.Render("✓ Setup Complete") + "\n" +
-			successStyle.Render("═════════════════") + "\n\n" +
-			"Notes directory created at:\n" +
-			"  " + pathStyle.Render(m.notesDir) + "\n\n" +
-			"Config saved to:\n" +
-			"  " + pathStyle.Render("~/.config/silo/config.json") + "\n\n" +
-			helpTextStyle.Render("Press Enter to launch SILO...")
+		view += "\n" +
+			stepStyle.Render("step 3/3") + " · " + successStyle.Render("setup complete") + "\n" +
+			helpTextStyle.Render("press enter to exit.\nre-run silo to enter editor mode\n")
 		return tea.NewView(view)
 
 	}
 
-	return tea.NewView("")
+	return tea.NewView(view)
 }
 
 func (m *WizardModel) setup(notesDir string) error {
@@ -182,9 +176,7 @@ func (m *WizardModel) setup(notesDir string) error {
 		return err
 	}
 
-	// Save config to:
 	// ~/.config/silo/config.json
-
 	cfg := &config.Config{NotesDir: notesDir}
 	return config.SaveConfig(cfg)
 }

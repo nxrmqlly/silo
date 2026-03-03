@@ -14,12 +14,12 @@ func main() {
 
 	if len(args) > 0 {
 		switch args[0] {
-		// todo
-		case "reset":
+		case "wizard":
+			runSiloWizard(false)
+			os.Exit(0)
+		case "config": //todo
 			return
-		case "config":
-			return
-		case "help", "--help", "-h":
+		case "help", "--help", "-h": //todo
 			return
 		}
 	}
@@ -28,7 +28,7 @@ func main() {
 	if config.ConfigExists() {
 		runSiloInteractive()
 	} else {
-		runSiloWizard()
+		runSiloWizard(true)
 	}
 }
 
@@ -47,10 +47,8 @@ func runSiloInteractive() {
 	}
 }
 
-func runSiloWizard() {
-	fmt.Printf("Initializing SILO setup wizard...\n")
-
-	model := app.NewWizardModel()
+func runSiloWizard(isFirstTime bool) {
+	model := app.NewWizardModel(isFirstTime)
 	p := tea.NewProgram(model)
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
