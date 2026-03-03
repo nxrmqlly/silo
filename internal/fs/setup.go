@@ -19,7 +19,11 @@ func InitialSetup(notesDir string) error {
 }
 
 func ExpandHome(path string) string {
-	if !strings.HasPrefix(path, "~/") {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return path
+	}
+	if !strings.HasPrefix(path, "~") {
 		return path
 	}
 	home, err := os.UserHomeDir()

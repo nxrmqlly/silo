@@ -103,8 +103,13 @@ func (m *WizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				path = m.defaultPath
 			}
 
-			m.notesDir = fs.ExpandHome(path)
-			fs.InitialSetup(path)
+			expanded := fs.ExpandHome(path)
+			if err := fs.InitialSetup(expanded); err != nil {
+				m.err = err
+				break
+			}
+
+			m.notesDir = expanded
 			m.configPath, _ = config.ConfigPath()
 			m.step = stepDone
 
