@@ -13,6 +13,8 @@ func InitialSetup(notesDir string) error {
 		return fmt.Errorf("failed to create notes dir: %w", err)
 	}
 
+	notesDir = ExpandHome(notesDir)
+
 	return config.SaveConfig(&config.Config{NotesDir: notesDir})
 }
 
