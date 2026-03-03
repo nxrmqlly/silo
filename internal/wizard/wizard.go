@@ -4,6 +4,7 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/nxrmqlly/silo/internal/config"
 	"github.com/nxrmqlly/silo/internal/fs"
 )
 
@@ -32,7 +33,6 @@ const welcomeStr = `✨ welcome to silo - dead simple notes app for your termina
 type WizardModel struct {
 	step        wizardStep
 	textInput   textinput.Model
-	configDir   string
 	defaultPath string
 	err         error
 	isFirstTime bool
@@ -104,6 +104,8 @@ func (m *WizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			m.notesDir = fs.ExpandHome(path)
+			fs.InitialSetup(path)
+			m.configPath, _ = config.ConfigPath()
 			m.step = stepDone
 
 		default:

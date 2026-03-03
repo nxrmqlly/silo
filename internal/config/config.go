@@ -65,7 +65,7 @@ func SaveConfig(cfg *Config) error {
 	return os.WriteFile(siloCfgPath, data, 0644)
 }
 
-func GetConfigPath() (string, error) {
+func ConfigPath() (string, error) {
 	dir, err := os.UserConfigDir()
 	if err != nil {
 		return "", err

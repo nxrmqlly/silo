@@ -7,7 +7,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/nxrmqlly/silo/internal/app"
 	"github.com/nxrmqlly/silo/internal/config"
-	"github.com/nxrmqlly/silo/internal/fs"
 	"github.com/nxrmqlly/silo/internal/wizard"
 )
 
@@ -51,6 +50,7 @@ func runSilo() {
 
 	model := app.NewSiloModel(cfg.NotesDir)
 	p := tea.NewProgram(model)
+
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)
@@ -61,18 +61,9 @@ func runSiloWizard(isFirstTime bool) {
 	model := wizard.NewWizardModel(isFirstTime)
 	p := tea.NewProgram(model)
 
-	final, err := p.Run()
-
-	if err != nil {
+	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)
 	}
-
-	w, ok := final.(*wizard.WizardModel)
-	if !ok || w.NotesDir() == "" {
-		return
-	}
-
-	fs.InitialSetup(w.NotesDir())
 
 }

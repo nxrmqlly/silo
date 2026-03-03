@@ -85,7 +85,7 @@ func cmdReset() {
 		return
 	}
 
-	cfgPath, err := config.GetConfigPath()
+	cfgPath, err := config.ConfigPath()
 	if err != nil {
 		fmt.Printf("error resolving config path: %v\n", err)
 		os.Exit(1)
