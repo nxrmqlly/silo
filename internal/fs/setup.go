@@ -9,11 +9,11 @@ import (
 )
 
 func InitialSetup(notesDir string) error {
+	notesDir = ExpandHome(notesDir)
+
 	if err := os.MkdirAll(notesDir, 0755); err != nil {
 		return fmt.Errorf("failed to create notes dir: %w", err)
 	}
-
-	notesDir = ExpandHome(notesDir)
 
 	return config.SaveConfig(&config.Config{NotesDir: notesDir})
 }
