@@ -22,12 +22,12 @@ const (
 	FocusEditor
 )
 
-func NewSiloModel() *SiloModel {
+func NewSiloModel(notesDir string) *SiloModel {
 
 	return &SiloModel{
 		focus:     FocusEditor,
 		editor:    ui.NewEditor(),
 		statusbar: ui.NewStatusBar(),
-		sidebar:   ui.NewSidebar(fs.BuildFileTree("./.silo-test/notes")),
+		sidebar:   ui.NewSidebar(fs.BuildFileTree(notesDir)),
 	}
 }

@@ -6,6 +6,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/nxrmqlly/silo/internal/app"
+	"github.com/nxrmqlly/silo/internal/config"
 )
 
 func main() {
@@ -23,13 +24,22 @@ func main() {
 		}
 	}
 
-
-
-	runSiloInteractive()
+	// Check if config exists
+	if config.ConfigExists() {
+		runSiloInteractive()
+	} else {
+		runSiloWizard()
+	}
 }
 
 func runSiloInteractive() {
-	model := app.NewSiloModel()
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		fmt.Printf("Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	model := app.NewSiloModel(cfg.NotesDir)
 	p := tea.NewProgram(model)
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
@@ -38,6 +48,8 @@ func runSiloInteractive() {
 }
 
 func runSiloWizard() {
+	fmt.Printf("Initializing SILO setup wizard...\n")
+
 	model := app.NewWizardModel()
 	p := tea.NewProgram(model)
 	if _, err := p.Run(); err != nil {
