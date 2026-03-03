@@ -1,12 +1,10 @@
 package wizard
 
 import (
-	"os"
-	"path/filepath"
-
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/nxrmqlly/silo/internal/fs"
 )
 
 var (
@@ -52,8 +50,7 @@ const (
 )
 
 func NewWizardModel(isFirstTime bool) *WizardModel {
-	homeDir, _ := os.UserHomeDir()
-	defaultPath := filepath.Join(homeDir, "notes")
+	defaultPath := "~/notes"
 
 	ti := textinput.New()
 	ti.Placeholder = defaultPath
@@ -106,7 +103,7 @@ func (m *WizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				path = m.defaultPath
 			}
 
-			m.notesDir = path
+			m.notesDir = fs.ExpandHome(path)
 			m.step = stepDone
 
 		default:
