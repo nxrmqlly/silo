@@ -64,3 +64,12 @@ func SaveConfig(cfg *Config) error {
 	siloCfgPath := filepath.Join(siloCfgDir, "config.json")
 	return os.WriteFile(siloCfgPath, data, 0644)
 }
+
+func GetConfigPath() (string, error) {
+	dir, err := os.UserConfigDir()
+    if err != nil {
+        return "", err
+    }
+    return filepath.Join(dir, "silo", "config.json"), nil
+}
+
