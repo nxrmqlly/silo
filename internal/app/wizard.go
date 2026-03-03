@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 
 	"charm.land/bubbles/v2/textinput"
-	"charm.land/lipgloss/v2"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/nxrmqlly/silo/internal/config"
 )
 
@@ -138,7 +138,7 @@ func (m *WizardModel) View() tea.View {
 			helpTextStyle.Render("(Press Enter to use the default)") + "\n\n"
 		view += m.textInput.View()
 		if m.err != nil {
-			view += "\n\n" + errorStyle.Render("❌ Error: " + m.err.Error())
+			view += "\n\n" + errorStyle.Render("❌ Error: "+m.err.Error())
 		}
 		return tea.NewView(view)
 
@@ -184,7 +184,7 @@ func (m *WizardModel) setup(notesDir string) error {
 
 	// Save config to:
 	// ~/.config/silo/config.json
-	
+
 	cfg := &config.Config{NotesDir: notesDir}
 	return config.SaveConfig(cfg)
 }

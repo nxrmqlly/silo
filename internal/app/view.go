@@ -12,6 +12,10 @@ func (m *SiloModel) View() tea.View {
 		return tea.NewView("")
 	}
 
+	if m.width == 0 || m.height == 0 {
+		return tea.NewView("")
+	}
+
 	sidebarView := m.sidebar.View()
 	editorView := m.editor.View()
 	statusView := m.statusbar.View()

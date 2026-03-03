@@ -43,7 +43,7 @@ func ConfigExists() bool {
 
 func SaveConfig(cfg *Config) error {
 	//* Unix/Linux: $XDG_CONFIG_HOME or $HOME/.config
-	//* Darwin    : $HOME/Library/Application Support 
+	//* Darwin    : $HOME/Library/Application Support
 	//* Windows   : %AppData%
 	userCfgDir, err := os.UserConfigDir()
 	if err != nil {
