@@ -23,8 +23,6 @@ func Run() {
 			cmdVersion()
 		case "changedir":
 			cmdChangeDir()
-		case "reset":
-			cmdReset()
 		case "help", "--help", "-h":
 			cmdHelp()
 		default:

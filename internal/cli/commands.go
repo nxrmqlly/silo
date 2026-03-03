@@ -22,7 +22,6 @@ commands:
   wizard      re-run the setup wizard
   pwd         print the notes directory
   changedir   change the notes directory
-  reset       delete config and start fresh
   version     print version
   help        show this message`
 
@@ -76,27 +75,6 @@ func cmdChangeDir() {
 
 	fmt.Println(green.Render("notes directory changed to", input))
 
-}
-
-func cmdReset() {
-	fmt.Print("your silo config will be deleted. your notes will not be touched. continue? (y/N)\n> ")
-	if readLine() != "y" {
-		fmt.Println("reset cancelled.")
-		return
-	}
-
-	cfgPath, err := config.ConfigPath()
-	if err != nil {
-		fmt.Printf("error resolving config path: %v\n", err)
-		os.Exit(1)
-	}
-
-	if err := os.Remove(cfgPath); err != nil && !os.IsNotExist(err) {
-		fmt.Printf("error deleting config: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Println("config removed. run `silo` to set up again.")
 }
 
 func cmdHelp() {
