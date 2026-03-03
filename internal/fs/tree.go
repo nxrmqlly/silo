@@ -25,7 +25,6 @@ func NewFileNode(path string, parent *FileNode) *FileNode {
 	}
 }
 
-
 func BuildFileTree(rootPath string) *FileNode {
 	root := NewFileNode(rootPath, nil)
 	buildChildren(root)

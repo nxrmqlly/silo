@@ -1,8 +1,8 @@
 package app
 
 import (
-	"github.com/nxrmqlly/silo/internal/ui"
 	"github.com/nxrmqlly/silo/internal/fs"
+	"github.com/nxrmqlly/silo/internal/ui"
 )
 
 type FocusMode int
