@@ -5,7 +5,7 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-func (m *CustomModel) View() tea.View {
+func (m *SiloModel) View() tea.View {
 	// s := "silo - a notes app"
 
 	if m.editor == nil || m.statusbar == nil {

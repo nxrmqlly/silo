@@ -6,7 +6,7 @@ import (
 	"github.com/nxrmqlly/silo/internal/ui"
 )
 
-func (m *CustomModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case tea.KeyMsg:

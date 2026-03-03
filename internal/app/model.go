@@ -6,7 +6,7 @@ import (
 )
 
 type FocusMode int
-type CustomModel struct {
+type SiloModel struct {
 	width  int
 	height int
 
@@ -22,9 +22,9 @@ const (
 	FocusEditor
 )
 
-func InitialModel() *CustomModel {
+func NewSiloModel() *SiloModel {
 
-	return &CustomModel{
+	return &SiloModel{
 		focus:     FocusEditor,
 		editor:    ui.NewEditor(),
 		statusbar: ui.NewStatusBar(),
