@@ -25,8 +25,5 @@ func cmdChangeDir() {}
 func cmdReset() {}
 
 func cmdHelp() {
-    fmt.Println(helpCmdStr)
+	fmt.Println(helpCmdStr)
 }
-
-
-

@@ -74,6 +74,5 @@ func runSiloWizard(isFirstTime bool) {
 	}
 
 	fs.InitialSetup(w.NotesDir())
-    
 
 }

@@ -67,9 +67,8 @@ func SaveConfig(cfg *Config) error {
 
 func GetConfigPath() (string, error) {
 	dir, err := os.UserConfigDir()
-    if err != nil {
-        return "", err
-    }
-    return filepath.Join(dir, "silo", "config.json"), nil
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "silo", "config.json"), nil
 }
-
