@@ -15,16 +15,71 @@ type Preview struct {
 	width         int
 	height        int
 	focused       bool
+	loading       bool
 }
 
 func (p *Preview) SetFocus(f bool) {
 	p.focused = f
 }
 
-func (p *Preview) SetContent(content string) {
+func (p *Preview) SetContent(content string) tea.Cmd {
 	p.content = content
-	p.rendered = "" // invalidate cache
-	p.rerender()
+	p.rendered = ""
+	p.lastWrapWidth = 0
+	p.loading = true
+	return p.renderCmd()
+}
+
+func (p *Preview) renderCmd() tea.Cmd {
+	content := p.content
+	wrapWidth := p.width - 4
+	if wrapWidth < 20 {
+		wrapWidth = 20
+	}
+
+	return func() tea.Msg {
+		rd, err := glamour.NewTermRenderer(
+			glamour.WithAutoStyle(),
+			glamour.WithWordWrap(wrapWidth),
+		)
+
+		if err != nil {
+			return PreviewRenderedMsg{Content: content, Rendered: content}
+		}
+
+		rendered, err := rd.Render(content)
+
+		if err != nil {
+			return PreviewRenderedMsg{Content: content, Rendered: content}
+		}
+
+		return PreviewRenderedMsg{Content: content, Rendered: rendered}
+	}
+}
+
+func (p *Preview) ApplyRendered(msg PreviewRenderedMsg) tea.Cmd {
+	if msg.Content != p.content {
+		return nil
+	}
+
+	wrapWidth := p.width - 4
+	if wrapWidth < 20 {
+		wrapWidth = 20
+	}
+
+	if wrapWidth != p.lastWrapWidth && p.lastWrapWidth != 0 {
+		return p.renderCmd()
+	}
+
+	p.rendered = msg.Rendered
+	p.lastWrapWidth = wrapWidth
+	p.loading = false
+
+	prevOffset := p.viewport.YOffset()
+	p.viewport.SetContent(msg.Rendered)
+	p.viewport.SetYOffset(prevOffset)
+
+	return nil
 }
 
 func (p *Preview) SetSize(w, h int) {
@@ -37,46 +92,13 @@ func (p *Preview) SetSize(w, h int) {
 	p.viewport.SetHeight(h - 2)
 }
 
-func (p *Preview) rerender() {
-	if p.content == "" || p.width == 0 {
-		return
-	}
-
-	wrapWidth := p.width - 4
-	if wrapWidth < 20 {
-		wrapWidth = 20
-	}
-
-	if wrapWidth == p.lastWrapWidth && p.rendered != "" {
-		return
-	}
-
-	rd, err := glamour.NewTermRenderer(
-		glamour.WithAutoStyle(),
-		glamour.WithWordWrap(wrapWidth),
-	)
-	if err != nil {
-		return
-	}
-
-	rendered, err := rd.Render(p.content)
-	if err != nil {
-		return
-	}
-
-	p.rendered = rendered
-	p.lastWrapWidth = wrapWidth
-
-	prevOffset := p.viewport.YOffset()
-	p.viewport.SetContent(rendered)
-	p.viewport.SetYOffset(prevOffset)
-}
-
 func (p *Preview) Update(msg tea.Msg) tea.Cmd {
 	var cmd tea.Cmd
 	p.viewport, cmd = p.viewport.Update(msg)
 	return cmd
 }
+
+func (p *Preview) Loading() bool { return p.loading }
 
 func (p *Preview) View() string {
 	if p.width == 0 || p.height == 0 {
@@ -101,7 +123,5 @@ func NewPreview() *Preview {
 		viewport.WithHeight(0),
 		viewport.WithWidth(0),
 	)
-	return &Preview{
-		viewport: vp,
-	}
+	return &Preview{viewport: vp}
 }

@@ -6,45 +6,48 @@ import (
 	"github.com/nxrmqlly/silo/internal/ui"
 )
 
+func (m *SiloModel) setFocus(f FocusMode) {
+	m.focus = f
+
+	m.sidebar.SetFocus(f == FocusSidebar)
+	m.editor.SetFocus(f == FocusRight && m.rightPane == PaneEditor)
+	m.preview.SetFocus(f == FocusRight && m.rightPane == PanePreview)
+	m.welcome.SetFocus(f == FocusRight && m.rightPane == PaneWelcome)
+}
+
+func (m *SiloModel) inSidebar(x int) bool {
+	return x < m.width/4
+}
+
 func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// statusbar can handle its own clear
-	m.statusbar.Update(msg)
+	sbCmd := m.statusbar.Update(msg)
 
 	switch msg := msg.(type) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "tab":
+			// inverting logic
 			if m.focus == FocusRight {
-				m.focus = FocusSidebar
-				m.sidebar.SetFocus(true)
-				m.editor.SetFocus(false)
-				m.preview.SetFocus(false)
-				m.welcome.SetFocus(false)
+				m.setFocus(FocusSidebar)
 			} else {
-				m.focus = FocusRight
-				m.sidebar.SetFocus(false)
-				switch m.rightPane {
-				case PaneEditor:
-					m.editor.SetFocus(true)
-				case PanePreview:
-					m.preview.SetFocus(true)
-				case PaneWelcome:
-					m.welcome.SetFocus(true)
-				}
+				m.setFocus(FocusRight)
 			}
 
 		case "ctrl+x":
-			if m.rightPane == PaneEditor {
+			switch m.rightPane {
+			case PaneEditor:
 				m.rightPane = PanePreview
-				m.preview.SetContent(m.editor.CurrentContent())
-				m.editor.SetFocus(false)
-				m.preview.SetFocus(true)
-			} else if m.rightPane == PanePreview {
+				m.setFocus(FocusRight)
+				renderCmd := m.preview.SetContent(m.editor.CurrentContent())
+				spinCmd := m.statusbar.StartSpinner("rendering preview")
+				return m, tea.Batch(renderCmd, spinCmd)
+			case PanePreview:
 				m.rightPane = PaneEditor
-				m.preview.SetFocus(false)
-				m.editor.SetFocus(true)
+				m.setFocus(FocusRight)
+				m.statusbar.StopSpinner()
 			}
 
 		case "ctrl+c":
@@ -85,9 +88,8 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.setStatus("err read: " + err.Error())
 		}
 		m.rightPane = PaneEditor
-		m.editor.SetFocus(true)
-		m.preview.SetFocus(false)
-		m.welcome.SetFocus(false)
+		m.setFocus(FocusRight)
+
 		m.editor.LoadFile(msg.Path, string(content))
 		m.statusbar.SetFile(msg.Path)
 		m.statusbar.SetDirty(false)
@@ -98,9 +100,9 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.editor.LoadFile("", "")
 			m.statusbar.SetFile("")
 			m.statusbar.SetDirty(false)
+
 			m.rightPane = PaneWelcome
-			m.welcome.SetFocus(true)
-			m.editor.SetFocus(false)
+			m.setFocus(FocusRight)
 		}
 		return m, tea.Batch(
 			m.setStatus("deleted"),
@@ -112,6 +114,29 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.setStatus("created: "+msg.Path),
 			func() tea.Msg { return ui.RefreshSidebarMsg{} },
 		)
+
+	case ui.PreviewRenderedMsg:
+		cmd := m.preview.ApplyRendered(msg)
+		if !m.preview.Loading() {
+			m.statusbar.StopSpinner()
+		}
+		return m, tea.Batch(sbCmd, cmd)
+	case tea.MouseClickMsg:
+		if m.inSidebar(msg.X) {
+			m.setFocus(FocusSidebar)
+		} else {
+			m.setFocus(FocusRight)
+		}
+	case tea.MouseWheelMsg:
+		// route scroll to the right component based on where cursor is
+		if m.inSidebar(msg.X) {
+			switch msg.Button {
+			case tea.MouseWheelDown:
+				m.sidebar.ScrollDown()
+			case tea.MouseWheelUp:
+				m.sidebar.ScrollUp()
+			}
+		}
 	}
 
 	// ? only update component in focus.
@@ -137,5 +162,6 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.editor.LineCount(),
 		m.editor.WordCount(),
 	)
-	return m, cmd
+
+	return m, tea.Batch(cmd, sbCmd)
 }

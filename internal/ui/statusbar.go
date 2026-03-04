@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 )
@@ -21,6 +22,10 @@ type StatusBar struct {
 	lineCount int
 	wordCount int
 	status    string
+
+	spinner  spinner.Model
+	spinning bool
+	spinText string
 }
 
 func (s *StatusBar) SetSize(width int) {
@@ -57,10 +62,32 @@ func ClearStatusAfter(d time.Duration) tea.Cmd {
 	})
 }
 
-func (s *StatusBar) Update(msg tea.Msg) {
-	if _, ok := msg.(ClearStatusMsg); ok {
+func (s *StatusBar) StartSpinner(text string) tea.Cmd {
+	s.spinning = true
+	s.spinText = text
+	s.status = ""
+	return s.spinner.Tick
+}
+
+func (s *StatusBar) StopSpinner() {
+	s.spinning = false
+	s.spinText = ""
+}
+
+func (s *StatusBar) Update(msg tea.Msg) tea.Cmd {
+	switch msg.(type) {
+	case ClearStatusMsg:
 		s.status = ""
+		return nil
 	}
+
+	if s.spinning {
+		var cmd tea.Cmd
+		s.spinner, cmd = s.spinner.Update(msg)
+		return cmd
+	}
+
+	return nil
 }
 
 func (s *StatusBar) View() string {
@@ -72,9 +99,12 @@ func (s *StatusBar) View() string {
 	left := fmt.Sprintf(" %s%s", filepath.Base(s.filePath), dirtyIndicator)
 
 	var right string
-	if s.status != "" {
+	switch {
+	case s.spinning:
+		right = fmt.Sprintf(" %s %s ", s.spinner.View(), s.spinText)
+	case s.status != "":
 		right = fmt.Sprintf(" %s ", s.status)
-	} else {
+	default:
 		right = fmt.Sprintf(
 			"Ln %d, Col %d | %d lines | %d words ",
 			s.line+1, s.column+1, s.lineCount, s.wordCount,
@@ -94,5 +124,9 @@ func (s *StatusBar) View() string {
 }
 
 func NewStatusBar() *StatusBar {
-	return &StatusBar{}
+	s := spinner.New(
+		spinner.WithSpinner(spinner.MiniDot),
+		spinner.WithStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("141"))),
+	)
+	return &StatusBar{spinner: s}
 }

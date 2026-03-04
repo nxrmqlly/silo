@@ -27,3 +27,9 @@ type RefreshSidebarMsg struct{}
 type AutosaveMsg struct{}
 
 type ClearStatusMsg struct{}
+
+type PreviewRenderedMsg struct {
+	Content  string // original source, for cache validation
+	Rendered string
+}
+
