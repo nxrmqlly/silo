@@ -2,19 +2,27 @@ package ui
 
 import (
 	"strings"
+	"time"
 
 	"charm.land/bubbles/v2/textarea"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 )
 
+
 type Editor struct {
-	textarea textarea.Model
-	filePath string
-	dirty    bool
-	focused  bool
-	width    int
-	height   int
+	textarea      textarea.Model
+	filePath      string
+	dirty         bool
+	focused       bool
+	width         int
+	height        int
+	autoSave      bool
+	savePending   bool
+}
+
+func (e *Editor) SetAutoSave(s bool) {
+	e.autoSave = s
 }
 
 func (e *Editor) CurrentCursorPosition() (int, int) {
@@ -64,29 +72,47 @@ func (e *Editor) LoadFile(path string, content string) {
 }
 
 func (e *Editor) Update(msg tea.Msg) tea.Cmd {
+	// Handle keyboard shortcuts
+	dispatchSave := func() tea.Msg {
+		return SaveFileMsg{
+			Path:    e.filePath,
+			Content: e.textarea.Value(),
+		}
+	}
 
-	switch msg := msg.(type) {
-
-	case tea.KeyMsg:
-		switch msg.String() {
-
+	if keyMsg, ok := msg.(tea.KeyMsg); ok {
+		switch keyMsg.String() {
 		case "ctrl+s":
 			e.dirty = false
-			return func() tea.Msg {
-				return SaveFileMsg{
-					Path:    e.filePath,
-					Content: e.textarea.Value(),
-				}
-			}
+			e.savePending = false
+			return dispatchSave
 		}
+	}
 
+	// autosave timer completion
+	if _, ok := msg.(AutosaveMsg); ok {
+		e.savePending = false
+		return dispatchSave
 	}
 
 	prev := e.textarea.Value()
 	var cmd tea.Cmd
 	e.textarea, cmd = e.textarea.Update(msg)
-	if e.textarea.Value() != prev {
+
+	contentChanged := e.textarea.Value() != prev
+	if contentChanged {
 		e.dirty = true
+
+		// ? debounce
+		if e.autoSave && !e.savePending {
+			e.savePending = true
+			return tea.Batch(
+				tea.Tick(1*time.Second, func(time.Time) tea.Msg {
+					return AutosaveMsg{}
+				}),
+				cmd,
+			)
+		}
 	}
 
 	return cmd
