@@ -53,6 +53,7 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case ui.SaveFileMsg:
+		// todo: false info - save logic later
 		if err := fs.WriteFile(msg.Path, msg.Content); err != nil {
 			m.statusbar.SetStatus("err save: " + err.Error())
 			return m, nil
@@ -61,8 +62,6 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusbar.SetFile(msg.Path)
 		m.statusbar.SetDirty(false)
 		m.statusbar.SetStatus("saved")
-
-		m.preview.SetContent(msg.Content)
 
 		return m, nil
 
@@ -105,11 +104,7 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch m.focus {
 	case FocusRight:
-		if m.isPreview {
-			cmd = m.preview.Update(msg)
-		} else {
-			cmd = m.editor.Update(msg)
-		}
+		cmd = m.editor.Update(msg)
 	case FocusSidebar:
 		cmd = m.sidebar.Update(msg)
 	}
