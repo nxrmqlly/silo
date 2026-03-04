@@ -139,6 +139,9 @@ func (s *Sidebar) handleNormalKey(msg tea.KeyMsg) tea.Cmd {
 	case "r":
 		if len(s.list) > 0 {
 			current := s.list[s.cursor]
+			if current == s.root {
+				return nil // can't rename root
+			}
 			s.mode = modeRenaming
 			s.renamingNode = current
 			s.renameInput = current.Name // pre-fill with current name
@@ -146,6 +149,10 @@ func (s *Sidebar) handleNormalKey(msg tea.KeyMsg) tea.Cmd {
 
 	case "d":
 		if len(s.list) > 0 {
+			current := s.list[s.cursor]
+			if current == s.root {
+				return nil // can't delete root
+			}
 			s.mode = modeConfirmDelete
 		}
 	}
