@@ -33,3 +33,7 @@ type PreviewRenderedMsg struct {
 	Rendered string
 }
 
+type FileRenamedMsg struct {
+	OldPath string
+	NewPath string
+}

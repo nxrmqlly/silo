@@ -37,3 +37,7 @@ func CreateFile(path string) error {
 func DeletePath(path string) error {
 	return os.RemoveAll(path)
 }
+
+func RenamePath(oldPath, newPath string) error {
+	return os.Rename(oldPath, newPath)
+}

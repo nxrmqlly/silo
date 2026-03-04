@@ -21,15 +21,36 @@ type Sidebar struct {
 
 	mode      sidebarMode
 	nameInput string // buffer since we only type one name at a time
+
+	renameInput  string
+	renamingNode *fs.FileNode
 }
 
 type sidebarMode int
+
+var promptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("160"))
+var typingCursor = lipgloss.NewStyle().Blink(true).Render("█")
 
 const (
 	modeNormal        sidebarMode = iota
 	modeNaming                    // 'n' pressed, typing new filename
 	modeConfirmDelete             // 'd' pressed, waiting for y/n
+	modeRenaming                  // 'r' pressed
 )
+
+func (s *Sidebar) ScrollDown() {
+	if s.cursor < len(s.list)-1 {
+		s.cursor++
+		s.adjustScroll()
+	}
+}
+
+func (s *Sidebar) ScrollUp() {
+	if s.cursor > 0 {
+		s.cursor--
+		s.adjustScroll()
+	}
+}
 
 func (s *Sidebar) refreshRenderList() {
 	s.list = flattenTree(s.root, 0)
@@ -98,16 +119,10 @@ func (s *Sidebar) handleNormalKey(msg tea.KeyMsg) tea.Cmd {
 	switch msg.String() {
 
 	case "down", "j":
-		if s.cursor < len(s.list)-1 {
-			s.cursor++
-			s.adjustScroll()
-		}
+		s.ScrollDown()
 
 	case "up", "k":
-		if s.cursor > 0 {
-			s.cursor--
-			s.adjustScroll()
-		}
+		s.ScrollUp()
 
 	case "enter":
 		current := s.list[s.cursor]
@@ -120,6 +135,14 @@ func (s *Sidebar) handleNormalKey(msg tea.KeyMsg) tea.Cmd {
 	case "n":
 		s.mode = modeNaming
 		s.nameInput = ""
+
+	case "r":
+		if len(s.list) > 0 {
+			current := s.list[s.cursor]
+			s.mode = modeRenaming
+			s.renamingNode = current
+			s.renameInput = current.Name // pre-fill with current name
+		}
 
 	case "d":
 		if len(s.list) > 0 {
@@ -176,6 +199,51 @@ func (s *Sidebar) handleNamingKey(msg tea.KeyMsg) tea.Cmd {
 		// ensure only printable chars
 		if len(ch) == 1 {
 			s.nameInput += ch
+		} else if ch == "space" {
+			s.nameInput += " "
+		}
+	}
+
+	return nil
+}
+
+func (s *Sidebar) handleRenamingKey(msg tea.KeyMsg) tea.Cmd {
+	switch msg.String() {
+	case "esc":
+		s.mode = modeNormal
+		s.renameInput = ""
+		s.renamingNode = nil
+
+	case "backspace":
+		if len(s.renameInput) > 0 {
+			s.renameInput = s.renameInput[:len(s.renameInput)-1]
+		}
+
+	case "enter":
+		input := strings.TrimSpace(s.renameInput)
+		s.mode = modeNormal
+		s.renameInput = ""
+
+		if input == "" || s.renamingNode == nil {
+			s.renamingNode = nil
+			return nil
+		}
+
+		oldPath := s.renamingNode.Path
+		newPath := filepath.Join(filepath.Dir(oldPath), input)
+		s.renamingNode = nil
+
+		if err := fs.RenamePath(oldPath, newPath); err != nil {
+			return nil
+		}
+
+		return func() tea.Msg {
+			return FileRenamedMsg{OldPath: oldPath, NewPath: newPath}
+		}
+
+	default:
+		if ch := msg.String(); len(ch) == 1 {
+			s.renameInput += ch
 		}
 	}
 
@@ -228,6 +296,9 @@ func (s *Sidebar) Update(msg tea.Msg) tea.Cmd {
 
 		case modeNormal:
 			return s.handleNormalKey(msg)
+
+		case modeRenaming:
+			return s.handleRenamingKey(msg)
 		}
 
 	case RefreshSidebarMsg:
@@ -296,9 +367,7 @@ func (s *Sidebar) View() string {
 	//prompt line at bottom
 	switch s.mode {
 	case modeNaming:
-		prompt := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("139")).
-			Render("new: " + s.nameInput + lipgloss.NewStyle().Blink(true).Render("█"))
+		prompt := promptStyle.Render("new: " + s.nameInput + typingCursor)
 		lines = append(lines, prompt)
 
 	case modeConfirmDelete:
@@ -307,10 +376,16 @@ func (s *Sidebar) View() string {
 			target = s.list[s.cursor].Name
 		}
 
-		prompt := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("160")).
-			Render("delete " + target + "? (y/n)")
+		prompt := promptStyle.Render("delete " + target + "? (y/N)")
 
+		lines = append(lines, prompt)
+
+	case modeRenaming:
+		name := ""
+		if s.renamingNode != nil {
+			name = s.renamingNode.Name
+		}
+		prompt := promptStyle.Render("rename " + name + ": " + s.renameInput + typingCursor)
 		lines = append(lines, prompt)
 	}
 

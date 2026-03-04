@@ -121,12 +121,14 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.statusbar.StopSpinner()
 		}
 		return m, tea.Batch(sbCmd, cmd)
+
 	case tea.MouseClickMsg:
 		if m.inSidebar(msg.X) {
 			m.setFocus(FocusSidebar)
 		} else {
 			m.setFocus(FocusRight)
 		}
+
 	case tea.MouseWheelMsg:
 		// route scroll to the right component based on where cursor is
 		if m.inSidebar(msg.X) {
@@ -137,6 +139,18 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.sidebar.ScrollUp()
 			}
 		}
+
+	case ui.FileRenamedMsg:
+		// if the open file was renamed, update the editor's path
+		if m.editor.FilePath() == msg.OldPath {
+			m.editor.LoadFile(msg.NewPath, m.editor.CurrentContent())
+			m.statusbar.SetFile(msg.NewPath)
+		}
+		return m, tea.Batch(
+			m.setStatus("renamed"),
+			func() tea.Msg { return ui.RefreshSidebarMsg{} },
+		)
+
 	}
 
 	// ? only update component in focus.
