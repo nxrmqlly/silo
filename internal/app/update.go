@@ -7,6 +7,10 @@ import (
 )
 
 func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+
+	// statusbar can handle its own clear
+	m.statusbar.Update(msg)
+
 	switch msg := msg.(type) {
 
 	case tea.KeyMsg:
@@ -21,13 +25,27 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.focus = FocusRight
 				m.sidebar.SetFocus(false)
-				m.editor.SetFocus(true)
-				m.preview.SetFocus(true)
-				m.welcome.SetFocus(true)
+				switch m.rightPane {
+				case PaneEditor:
+					m.editor.SetFocus(true)
+				case PanePreview:
+					m.preview.SetFocus(true)
+				case PaneWelcome:
+					m.welcome.SetFocus(true)
+				}
 			}
 
 		case "ctrl+x":
-			m.isPreview = !m.isPreview
+			if m.rightPane == PaneEditor {
+				m.rightPane = PanePreview
+				m.preview.SetContent(m.editor.CurrentContent())
+				m.editor.SetFocus(false)
+				m.preview.SetFocus(true)
+			} else if m.rightPane == PanePreview {
+				m.rightPane = PaneEditor
+				m.preview.SetFocus(false)
+				m.editor.SetFocus(true)
+			}
 
 		case "ctrl+c":
 			return m, tea.Quit
@@ -37,45 +55,40 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
-		// 1:3 space
 		sidebarWidth := m.width / 4
 		editorWidth := m.width - sidebarWidth
-
-		// for statusbar
 		contentHeight := m.height - 1
 
-		m.editor.SetSize(editorWidth, contentHeight)
-		m.sidebar.SetSize(sidebarWidth, contentHeight)
-		m.preview.SetSize(editorWidth, contentHeight)
-		m.welcome.SetSize(editorWidth, contentHeight)
-		m.statusbar.SetSize(msg.Width)
-
-		return m, nil
-
-	case ui.SaveFileMsg:
-		// todo: false info - save logic later
-		if err := fs.WriteFile(msg.Path, msg.Content); err != nil {
-			m.statusbar.SetStatus("err save: " + err.Error())
-			return m, nil
+		if m.rightPane == PanePreview {
+			m.rightPane = PaneEditor
+			m.editor.SetFocus(true)
+			m.preview.SetFocus(false)
 		}
 
+		m.sidebar.SetSize(sidebarWidth, contentHeight)
+		m.editor.SetSize(editorWidth, contentHeight)
+		m.preview.SetSize(editorWidth, contentHeight)
+		m.welcome.SetSize(editorWidth, contentHeight)
+		m.statusbar.SetSize(m.width)
+
+	case ui.SaveFileMsg:
+		if err := fs.WriteFile(msg.Path, msg.Content); err != nil {
+			return m, m.setStatus("err save: " + err.Error())
+		}
 		m.statusbar.SetFile(msg.Path)
 		m.statusbar.SetDirty(false)
-		m.statusbar.SetStatus("saved")
-
-		return m, nil
+		return m, m.setStatus("saved")
 
 	case ui.FileSelectedMsg:
 		content, err := fs.ReadFile(msg.Path)
 		if err != nil {
-			m.statusbar.SetStatus("err read: " + err.Error())
-			return m, nil
+			return m, m.setStatus("err read: " + err.Error())
 		}
-
-		m.isWelcome = false
-
+		m.rightPane = PaneEditor
+		m.editor.SetFocus(true)
+		m.preview.SetFocus(false)
+		m.welcome.SetFocus(false)
 		m.editor.LoadFile(msg.Path, string(content))
-		m.preview.SetContent(string(content))
 		m.statusbar.SetFile(msg.Path)
 		m.statusbar.SetDirty(false)
 		return m, nil
@@ -85,26 +98,32 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.editor.LoadFile("", "")
 			m.statusbar.SetFile("")
 			m.statusbar.SetDirty(false)
-			m.isWelcome = true
+			m.rightPane = PaneWelcome
+			m.welcome.SetFocus(true)
+			m.editor.SetFocus(false)
 		}
-		m.statusbar.SetStatus("deleted")
-		return m, func() tea.Msg {
-			return ui.RefreshSidebarMsg{}
-		}
+		return m, tea.Batch(
+			m.setStatus("deleted"),
+			func() tea.Msg { return ui.RefreshSidebarMsg{} },
+		)
 
 	case ui.FileCreatedMsg:
-		m.statusbar.SetStatus("created: " + msg.Path)
-
-		return m, func() tea.Msg {
-			return ui.RefreshSidebarMsg{}
-		}
+		return m, tea.Batch(
+			m.setStatus("created: "+msg.Path),
+			func() tea.Msg { return ui.RefreshSidebarMsg{} },
+		)
 	}
 
 	// ? only update component in focus.
 	var cmd tea.Cmd
 	switch m.focus {
 	case FocusRight:
-		cmd = m.editor.Update(msg)
+		switch m.rightPane {
+		case PaneEditor:
+			cmd = m.editor.Update(msg)
+		case PanePreview:
+			cmd = m.preview.Update(msg)
+		}
 	case FocusSidebar:
 		cmd = m.sidebar.Update(msg)
 	}
@@ -118,8 +137,5 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.editor.LineCount(),
 		m.editor.WordCount(),
 	)
-
-	m.statusbar.SetFile(m.editor.FilePath())
-	m.statusbar.SetDirty(m.editor.IsDirty())
 	return m, cmd
 }

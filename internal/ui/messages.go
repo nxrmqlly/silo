@@ -25,3 +25,5 @@ type FileDeletedMsg struct {
 type RefreshSidebarMsg struct{}
 
 type AutosaveMsg struct{}
+
+type ClearStatusMsg struct{}

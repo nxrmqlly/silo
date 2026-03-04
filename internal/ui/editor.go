@@ -47,6 +47,10 @@ func (e *Editor) FilePath() string {
 	return e.filePath
 }
 
+func (e *Editor) CurrentContent() string {
+	return e.textarea.Value()
+}
+
 func (e *Editor) SetSize(width, height int) {
 	if width <= 2 || height <= 2 {
 		return
@@ -54,6 +58,7 @@ func (e *Editor) SetSize(width, height int) {
 
 	e.width = width
 	e.height = height
+
 	e.textarea.SetWidth(width - 2)
 	e.textarea.SetHeight(height - 2)
 }

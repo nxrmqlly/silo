@@ -11,17 +11,17 @@ func (m *SiloModel) View() tea.View {
 	}
 
 	var rightView string
-	if m.isWelcome {
-		rightView = m.welcome.View()
-	} else if m.isPreview {
-		rightView = m.preview.View()
-	} else {
+
+	switch m.rightPane {
+	case PaneEditor:
 		rightView = m.editor.View()
+	case PaneWelcome:
+		rightView = m.welcome.View()
+	case PanePreview:
+		rightView = m.preview.View()
 	}
 
 	top := lipgloss.JoinHorizontal(lipgloss.Top, m.sidebar.View(), rightView)
 
-	return tea.NewView(
-		lipgloss.JoinVertical(lipgloss.Left, top, m.statusbar.View()),
-	)
+	return tea.NewView(lipgloss.JoinVertical(lipgloss.Left, top, m.statusbar.View()))
 }

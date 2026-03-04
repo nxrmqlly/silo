@@ -1,37 +1,50 @@
 package app
 
 import (
+	"time"
+
+	tea "charm.land/bubbletea/v2"
 	"github.com/nxrmqlly/silo/internal/fs"
 	"github.com/nxrmqlly/silo/internal/ui"
 )
 
-type FocusMode int
 type SiloModel struct {
 	width  int
 	height int
 
-	focus FocusMode
+	focus     FocusMode
+	rightPane RightPane
 
 	editor    *ui.Editor
 	statusbar *ui.StatusBar
 	sidebar   *ui.Sidebar
 	preview   *ui.Preview
 	welcome   *ui.Welcome
-
-	isPreview bool
-	isWelcome bool
 }
+
+type FocusMode int
+type RightPane int
 
 const (
 	FocusSidebar FocusMode = iota
 	FocusRight
 )
 
+const (
+	PaneWelcome RightPane = iota
+	PaneEditor
+	PanePreview
+)
+
+func (m *SiloModel) setStatus(msg string) tea.Cmd {
+	m.statusbar.SetStatus(msg)
+	return ui.ClearStatusAfter(2 * time.Second)
+}
+
 func NewSiloModel(notesDir string) *SiloModel {
 	return &SiloModel{
 		focus:     FocusRight,
-		isPreview: false,
-		isWelcome: true,
+		rightPane: PaneWelcome,
 
 		editor:    ui.NewEditor(),
 		statusbar: ui.NewStatusBar(),

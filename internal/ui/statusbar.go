@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
+	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 )
 
@@ -47,24 +49,31 @@ func (s *StatusBar) SetStatus(msg string) {
 	s.status = msg
 }
 
+// ClearStatus returns a Cmd that clears the status after a delay.
+// Call this from Update whenever SetStatus is called.
+func ClearStatusAfter(d time.Duration) tea.Cmd {
+	return tea.Tick(d, func(time.Time) tea.Msg {
+		return ClearStatusMsg{}
+	})
+}
+
+func (s *StatusBar) Update(msg tea.Msg) {
+	if _, ok := msg.(ClearStatusMsg); ok {
+		s.status = ""
+	}
+}
+
 func (s *StatusBar) View() string {
 	dirtyIndicator := ""
 	if s.dirty {
 		dirtyIndicator = "*"
 	}
 
-	fname := s.filePath
-	if fname == "" {
-		fname = "<empty buffer>"
-	}
 	left := fmt.Sprintf(" %s%s", filepath.Base(s.filePath), dirtyIndicator)
 
 	var right string
-
 	if s.status != "" {
 		right = fmt.Sprintf(" %s ", s.status)
-		s.status = "" // clear after one render so it doesnt hog space.
-
 	} else {
 		right = fmt.Sprintf(
 			"Ln %d, Col %d | %d lines | %d words ",
@@ -77,12 +86,11 @@ func (s *StatusBar) View() string {
 		gap = 1
 	}
 
-	bar := left + strings.Repeat(" ", gap) + right
 	return lipgloss.NewStyle().
 		Width(s.width).
 		Background(lipgloss.Color("236")).
 		Foreground(lipgloss.Color("252")).
-		Render(bar)
+		Render(left + strings.Repeat(" ", gap) + right)
 }
 
 func NewStatusBar() *StatusBar {

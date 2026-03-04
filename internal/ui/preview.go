@@ -8,14 +8,13 @@ import (
 )
 
 type Preview struct {
-	viewport viewport.Model
-	renderer *glamour.TermRenderer
-
-	content string
-
-	width   int
-	height  int
-	focused bool
+	viewport      viewport.Model
+	content       string
+	lastWrapWidth int
+	rendered      string
+	width         int
+	height        int
+	focused       bool
 }
 
 func (p *Preview) SetFocus(f bool) {
@@ -24,41 +23,53 @@ func (p *Preview) SetFocus(f bool) {
 
 func (p *Preview) SetContent(content string) {
 	p.content = content
-	if p.renderer != nil && p.content != "" {
-		rendered, _ := p.renderer.Render(p.content)
-		p.viewport.SetContent(rendered)
-	}
+	p.rendered = "" // invalidate cache
+	p.rerender()
 }
 
 func (p *Preview) SetSize(w, h int) {
 	if w <= 2 || h <= 2 {
 		return
 	}
-
 	p.width = w
 	p.height = h
-
 	p.viewport.SetWidth(w - 2)
 	p.viewport.SetHeight(h - 2)
+}
 
-	wrapWidth := w - 4 //for padding
+func (p *Preview) rerender() {
+	if p.content == "" || p.width == 0 {
+		return
+	}
 
+	wrapWidth := p.width - 4
 	if wrapWidth < 20 {
 		wrapWidth = 20
 	}
 
-	rd, _ := glamour.NewTermRenderer(
+	if wrapWidth == p.lastWrapWidth && p.rendered != "" {
+		return
+	}
+
+	rd, err := glamour.NewTermRenderer(
 		glamour.WithAutoStyle(),
 		glamour.WithWordWrap(wrapWidth),
 	)
-
-	p.renderer = rd
-
-	if p.content != "" {
-		rendered, _ := p.renderer.Render(p.content)
-		p.viewport.SetContent(rendered)
+	if err != nil {
+		return
 	}
 
+	rendered, err := rd.Render(p.content)
+	if err != nil {
+		return
+	}
+
+	p.rendered = rendered
+	p.lastWrapWidth = wrapWidth
+
+	prevOffset := p.viewport.YOffset()
+	p.viewport.SetContent(rendered)
+	p.viewport.SetYOffset(prevOffset)
 }
 
 func (p *Preview) Update(msg tea.Msg) tea.Cmd {
@@ -72,22 +83,17 @@ func (p *Preview) View() string {
 		return ""
 	}
 
-	style := lipgloss.NewStyle().
-		Width(p.width).
-		Height(p.height).
-		Padding(0, 0)
-
+	borderColor := lipgloss.Color("238")
 	if p.focused {
-		style = style.
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("139"))
-	} else {
-		style = style.Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("238"))
+		borderColor = lipgloss.Color("139")
 	}
 
-	return style.Render(p.viewport.View())
-
+	return lipgloss.NewStyle().
+		Width(p.width).
+		Height(p.height).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(borderColor).
+		Render(p.viewport.View())
 }
 
 func NewPreview() *Preview {
@@ -95,15 +101,7 @@ func NewPreview() *Preview {
 		viewport.WithHeight(0),
 		viewport.WithWidth(0),
 	)
-
-	rd, _ := glamour.NewTermRenderer(
-		glamour.WithAutoStyle(),
-		glamour.WithWordWrap(80), // default
-	)
-
 	return &Preview{
 		viewport: vp,
-		renderer: rd,
-		content:  "",
 	}
 }
