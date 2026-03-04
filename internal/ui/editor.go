@@ -9,16 +9,18 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-
 type Editor struct {
-	textarea      textarea.Model
-	filePath      string
-	dirty         bool
-	focused       bool
-	width         int
-	height        int
-	autoSave      bool
-	savePending   bool
+	textarea textarea.Model
+
+	filePath string
+	dirty    bool
+
+	focused bool
+	width   int
+	height  int
+
+	autoSave    bool
+	savePending bool
 }
 
 func (e *Editor) SetAutoSave(s bool) {
@@ -97,13 +99,16 @@ func (e *Editor) Update(msg tea.Msg) tea.Cmd {
 
 	prev := e.textarea.Value()
 	var cmd tea.Cmd
+
+	// TODO: Add syntax highlighting for code blocks
+
 	e.textarea, cmd = e.textarea.Update(msg)
 
 	contentChanged := e.textarea.Value() != prev
 	if contentChanged {
 		e.dirty = true
 
-		// ? debounce
+		// debounce autosave
 		if e.autoSave && !e.savePending {
 			e.savePending = true
 			return tea.Batch(
@@ -140,6 +145,7 @@ func (e *Editor) View() string {
 	}
 
 	return style.Render(e.textarea.View())
+
 }
 
 func NewEditor() *Editor {
@@ -162,7 +168,7 @@ func NewEditor() *Editor {
 
 	return &Editor{
 		textarea: ta,
-		filePath: "<buffer>",
+		filePath: "",
 		focused:  true,
 	}
 }

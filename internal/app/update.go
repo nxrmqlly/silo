@@ -12,15 +12,22 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "tab":
-			if m.focus == FocusEditor {
+			if m.focus == FocusRight {
 				m.focus = FocusSidebar
-				m.editor.SetFocus(false)
 				m.sidebar.SetFocus(true)
+
+				m.editor.SetFocus(false)
+				m.preview.SetFocus(false)
 			} else {
-				m.focus = FocusEditor
+				m.focus = FocusRight
 				m.sidebar.SetFocus(false)
+
 				m.editor.SetFocus(true)
+				m.preview.SetFocus(true)
 			}
+
+		case "ctrl+x":
+			m.isPreview = !m.isPreview
 
 		case "ctrl+c":
 			return m, tea.Quit
@@ -39,6 +46,7 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.editor.SetSize(editorWidth, contentHeight)
 		m.sidebar.SetSize(sidebarWidth, contentHeight)
+		m.preview.SetSize(editorWidth, contentHeight)
 		m.statusbar.SetSize(msg.Width)
 
 		return m, nil
@@ -64,6 +72,8 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		m.editor.LoadFile(msg.Path, string(content))
+		m.preview.SetContent(string(content))
+
 		m.statusbar.SetFile(msg.Path)
 		m.statusbar.SetDirty(false)
 
@@ -73,7 +83,7 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// if deleted file was open, then clear editor
 		if m.editor.FilePath() == msg.Path {
 			m.editor.LoadFile("", "")
-			m.statusbar.SetFile("<unsaved buffer>")
+			m.statusbar.SetFile("")
 			m.statusbar.SetDirty(false)
 		}
 		m.statusbar.SetStatus("deleted")
@@ -92,7 +102,7 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// ? only update component in focus.
 	var cmd tea.Cmd
 	switch m.focus {
-	case FocusEditor:
+	case FocusRight:
 		cmd = m.editor.Update(msg)
 	case FocusSidebar:
 		cmd = m.sidebar.Update(msg)
