@@ -4,6 +4,7 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/nxrmqlly/silo/internal"
 	"github.com/nxrmqlly/silo/internal/config"
 	"github.com/nxrmqlly/silo/internal/fs"
 )
@@ -18,17 +19,6 @@ var (
 	errorStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
 	helpStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("243")).Italic(true)
 )
-
-const siloAscii string = `
- ▄▄▄ ▄ █  ▄▄▄  
-▀▄▄  ▄ █ █   █  
-▄▄▄▀ █ █ ▀▄▄▄▀  
-     █ █       
-`
-const copyNotice = `copyright (c) Ritam Das [GNU GPLv2]
-https://github.com/nxrmqlly/silo`
-
-const welcomeStr = `✨ welcome to silo - dead simple notes app for your terminal`
 
 type WizardModel struct {
 	step        wizardStep
@@ -136,13 +126,13 @@ func (m *WizardModel) View() tea.View {
 
 	header = lipgloss.JoinHorizontal(
 		lipgloss.Center,
-		titleStyle.Render(siloAscii),
-		accentStyle.Render(copyNotice),
+		titleStyle.Render(internal.SiloAscii),
+		accentStyle.Render(internal.CopyNotice),
 	)
 	header = lipgloss.JoinVertical(
 		lipgloss.Left,
 		header,
-		titleStyle.Render(welcomeStr),
+		titleStyle.Render(internal.WelcomeStr),
 	)
 
 	view += header + "\n"

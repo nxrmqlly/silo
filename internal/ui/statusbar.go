@@ -21,10 +21,6 @@ type StatusBar struct {
 	status    string
 }
 
-func NewStatusBar() *StatusBar {
-	return &StatusBar{}
-}
-
 func (s *StatusBar) SetSize(width int) {
 	s.width = width
 }
@@ -87,4 +83,8 @@ func (s *StatusBar) View() string {
 		Background(lipgloss.Color("236")).
 		Foreground(lipgloss.Color("252")).
 		Render(bar)
+}
+
+func NewStatusBar() *StatusBar {
+	return &StatusBar{}
 }

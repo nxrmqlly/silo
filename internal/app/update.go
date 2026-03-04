@@ -15,15 +15,15 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.focus == FocusRight {
 				m.focus = FocusSidebar
 				m.sidebar.SetFocus(true)
-
 				m.editor.SetFocus(false)
 				m.preview.SetFocus(false)
+				m.welcome.SetFocus(false)
 			} else {
 				m.focus = FocusRight
 				m.sidebar.SetFocus(false)
-
 				m.editor.SetFocus(true)
 				m.preview.SetFocus(true)
+				m.welcome.SetFocus(true)
 			}
 
 		case "ctrl+x":
@@ -47,6 +47,7 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.editor.SetSize(editorWidth, contentHeight)
 		m.sidebar.SetSize(sidebarWidth, contentHeight)
 		m.preview.SetSize(editorWidth, contentHeight)
+		m.welcome.SetSize(editorWidth, contentHeight)
 		m.statusbar.SetSize(msg.Width)
 
 		return m, nil
@@ -72,20 +73,20 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+		m.isWelcome = false
+
 		m.editor.LoadFile(msg.Path, string(content))
 		m.preview.SetContent(string(content))
-
 		m.statusbar.SetFile(msg.Path)
 		m.statusbar.SetDirty(false)
-
 		return m, nil
 
 	case ui.FileDeletedMsg:
-		// if deleted file was open, then clear editor
 		if m.editor.FilePath() == msg.Path {
 			m.editor.LoadFile("", "")
 			m.statusbar.SetFile("")
 			m.statusbar.SetDirty(false)
+			m.isWelcome = true
 		}
 		m.statusbar.SetStatus("deleted")
 		return m, func() tea.Msg {

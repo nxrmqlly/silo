@@ -16,8 +16,10 @@ type SiloModel struct {
 	statusbar *ui.StatusBar
 	sidebar   *ui.Sidebar
 	preview   *ui.Preview
+	welcome   *ui.Welcome
 
 	isPreview bool
+	isWelcome bool
 }
 
 const (
@@ -26,13 +28,15 @@ const (
 )
 
 func NewSiloModel(notesDir string) *SiloModel {
-
 	return &SiloModel{
 		focus:     FocusRight,
 		isPreview: false,
+		isWelcome: true,
+
 		editor:    ui.NewEditor(),
 		statusbar: ui.NewStatusBar(),
 		sidebar:   ui.NewSidebar(fs.BuildFileTree(notesDir)),
 		preview:   ui.NewPreview(),
+		welcome:   ui.NewWelcome(),
 	}
 }
