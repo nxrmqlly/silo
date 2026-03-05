@@ -28,7 +28,7 @@ type Sidebar struct {
 
 type sidebarMode int
 
-var promptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("160"))
+var promptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("33"))
 var typingCursor = lipgloss.NewStyle().Blink(true).Render("█")
 
 const (
