@@ -23,8 +23,11 @@ type Editor struct {
 	savePending bool
 }
 
-func (e *Editor) SetAutoSave(s bool) {
-	e.autoSave = s
+func (e *Editor) ToggleAutoSave() {
+	e.autoSave = !e.autoSave
+}
+func (e *Editor) AutoSave() bool {
+	return e.autoSave
 }
 
 func (e *Editor) CurrentCursorPosition() (int, int) {
@@ -99,6 +102,7 @@ func (e *Editor) Update(msg tea.Msg) tea.Cmd {
 	// autosave timer completion
 	if _, ok := msg.(AutosaveMsg); ok {
 		e.savePending = false
+		e.dirty = false
 		return dispatchSave
 	}
 

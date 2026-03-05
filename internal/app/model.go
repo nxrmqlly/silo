@@ -36,7 +36,7 @@ const (
 	PanePreview
 )
 
-func (m *SiloModel) setStatus(msg string) tea.Cmd {
+func (m *SiloModel) setSbStatus(msg string) tea.Cmd {
 	m.statusbar.SetStatus(msg)
 	return ui.ClearStatusAfter(2 * time.Second)
 }

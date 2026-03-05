@@ -50,6 +50,15 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.statusbar.StopSpinner()
 			}
 
+		case "ctrl+e":
+			m.editor.ToggleAutoSave()
+			autosaving := m.editor.AutoSave()
+			if autosaving {
+				m.setSbStatus("autosave on")
+			} else {
+				m.setSbStatus("autosave off")
+			}
+
 		case "ctrl+c":
 			return m, tea.Quit
 		}
@@ -76,16 +85,16 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case ui.SaveFileMsg:
 		if err := fs.WriteFile(msg.Path, msg.Content); err != nil {
-			return m, m.setStatus("err save: " + err.Error())
+			return m, m.setSbStatus("err save: " + err.Error())
 		}
 		m.statusbar.SetFile(msg.Path)
 		m.statusbar.SetDirty(false)
-		return m, m.setStatus("saved")
+		return m, m.setSbStatus("saved") // was: return m, nil
 
 	case ui.FileSelectedMsg:
 		content, err := fs.ReadFile(msg.Path)
 		if err != nil {
-			return m, m.setStatus("err read: " + err.Error())
+			return m, m.setSbStatus("err read: " + err.Error())
 		}
 		m.rightPane = PaneEditor
 		m.setFocus(FocusRight)
@@ -93,7 +102,7 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.editor.LoadFile(msg.Path, string(content))
 		m.statusbar.SetFile(msg.Path)
 		m.statusbar.SetDirty(false)
-		return m, nil
+		return m, sbCmd
 
 	case ui.FileDeletedMsg:
 		if m.editor.FilePath() == msg.Path {
@@ -105,13 +114,13 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.setFocus(FocusRight)
 		}
 		return m, tea.Batch(
-			m.setStatus("deleted"),
+			m.setSbStatus("deleted"),
 			func() tea.Msg { return ui.RefreshSidebarMsg{} },
 		)
 
 	case ui.FileCreatedMsg:
 		return m, tea.Batch(
-			m.setStatus("created: "+msg.Path),
+			m.setSbStatus("created: "+msg.Path),
 			func() tea.Msg { return ui.RefreshSidebarMsg{} },
 		)
 
@@ -147,7 +156,8 @@ func (m *SiloModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.statusbar.SetFile(msg.NewPath)
 		}
 		return m, tea.Batch(
-			m.setStatus("renamed"),
+			sbCmd,
+			m.setSbStatus("renamed"),
 			func() tea.Msg { return ui.RefreshSidebarMsg{} },
 		)
 
