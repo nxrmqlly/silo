@@ -25,7 +25,7 @@ A dead simple, opinionated notes tui.
 
 run this in your terminal:
 ```sh
-curl -sSL https://raw.githubusercontent.com/nxrmqlly/silo/main/install.sh | sh
+curl -sSL https://raw.githubusercontent.com/nxrmqlly/silo/master/install.sh | sh
 ```
 then launch:
 ```
