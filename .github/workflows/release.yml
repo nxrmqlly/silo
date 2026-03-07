@@ -1,4 +1,4 @@
-name: Go Release
+name: Release
 
 on:
   push:
@@ -11,32 +11,39 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        os: [linux, darwin, windows]
-        arch: [amd64, arm64]
-
-
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v5
         with:
-          go-version: 1.26
+          go-version: '1.23'
+          cache: true
+
+      - name: Get tag
+        id: tag
+        run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
       - name: Build binaries
         run: |
-          OUTPUT="silo-${{ matrix.os }}-${{ matrix.arch }}"
-          if [[ "${{ matrix.os }}" == "windows" ]]; then
-            OUTPUT="${OUTPUT}.exe"
-          fi
-          echo "Building $OUTPUT with version $TAG"
-          GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -ldflags "-X 'github.com/nxrmqlly/silo/internal/cli.Version=${TAG}'" -o "$OUTPUT" ./cmd/silo
-          ls -lh "$OUTPUT"
+          for OS in linux darwin windows; do
+            for ARCH in amd64 arm64; do
+              OUTPUT="silo-${OS}-${ARCH}"
+              [[ "$OS" == "windows" ]] && OUTPUT="${OUTPUT}.exe"
+              GOOS=$OS GOARCH=$ARCH go build \
+                -trimpath \
+                -ldflags "-s -w -X 'github.com/nxrmqlly/silo/internal/cli.Version=${{ steps.tag.outputs.TAG }}'" \
+                -o "$OUTPUT" ./cmd/silo
+            done
+          done
+
+      - name: Generate checksums
+        run: sha256sum silo-* > checksums.txt
 
       - uses: softprops/action-gh-release@v2
         with:
-          files: silo-${{ matrix.os }}-${{ matrix.arch }}
+          files: |
+            silo-*
+            checksums.txt
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
